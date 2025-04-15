@@ -44,15 +44,20 @@ async function initializeDB() {
 // Routes
 app.use('/api/auth', authRoutes);
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  await initializeDbPool(); // Establish DB connection on startup
-});
+// Only start the server if this file is run directly
+if (require.main === module) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, async () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    await initializeDbPool(); // Establish DB connection on startup
+  });
 
-// Gracefully close DB connection when the app stops
-process.on('SIGINT', async () => {
-  console.log('🛑 Closing database connection...');
-  if (pool) await pool.close();
-  process.exit(0);
-});
+  // Gracefully close DB connection when the app stops
+  process.on('SIGINT', async () => {
+    console.log('🛑 Closing database connection...');
+    if (pool) await pool.close();
+    process.exit(0);
+  });
+}
+
+module.exports = app;
