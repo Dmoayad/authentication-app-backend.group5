@@ -1,0 +1,107 @@
+trigger:
+  - main # Or whichever branch you use for releases
+
+variables:
+  dockerRegistryServiceConnection: 'dockerhub_connection' # This service connection is for the build stage to push to Docker Hub
+  imageRepository: 'dmoayad/authentication_app_backend' # Name of your Docker image on Docker Hub
+  dockerFilePath: '$(Build.SourcesDirectory)/Dockerfile' # Path to your Dockerfile
+  # scriptPath: '$(Build.SourcesDirectory)/deploy'
+  dockerTag: '$(Build.BuildId)'
+  vmUsername: 'moayad'
+  ssh-connection: 'jumphost-vm-connection'
+  jumpHostIP: '52.165.158.86'
+  backendVm1PrivateIP: '10.0.3.6'
+  backendVm2PrivateIP: '10.0.3.5'
+  app-name: authentication_app_backend
+  sshKeySecureFile: 'key.pem' # Upload your SSH private key as a Secure File in Azure DevOps
+
+stages:
+  - stage: BuildAndPush
+    displayName: Build and push Docker image to Docker Hub
+    jobs:
+      - job: BuildPush
+        displayName: Build and Push to Docker Hub
+        pool:
+          vmImage: 'ubuntu-latest' # Or your preferred agent image
+        steps:
+          - task: Docker@2
+            displayName: Build and push an image to Docker Hub
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)' # Use your Docker Hub Service Connection
+              repository: '$(imageRepository)'
+              command: 'buildAndPush'
+              Dockerfile: '$(dockerFilePath)'
+              tags: |
+                latest
+                $(dockerTag)
+
+  - stage: Deploybackend
+    displayName: Deploy to backend VMs
+    jobs:
+      - deployment: DeployTobackend
+        displayName: Deploy Web App
+        environment: 'production-backend' # Or a suitable environment name
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: SSH@0
+                  displayName: Deploy to backend VM 1
+                  inputs:
+                    sshEndpoint: '$(ssh-connection)'
+                    runOptions: 'inline' # Use inline option
+                    inline: |
+
+                      # Define the path to the private key on the jumphost
+                      PRIVATE_KEY_PATH="/home/moayad/key.pem"
+
+                      # Ensure the private key has correct permissions (optional but recommended)
+                      chmod 600 "$PRIVATE_KEY_PATH" || true
+
+                      # SSH to the backend VM and execute the deploy commands with conditional logic.
+                      # Use double quotes for the remote command block to handle potential variables
+                      # and multiline commands.
+                      ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" $(vmUsername)@$(backendVm1PrivateIP) "
+                        echo 'Stopping and removing existing container (if any)...'
+                        if docker inspect  $(app-name) >/dev/null 2>&1; then
+                          docker rm -f  $(app-name)
+                        else
+                          echo 'Container $(app-name) not found. Skipping removal.'
+                        fi
+
+                        echo 'Pulling the latest Docker image...'
+                        docker pull $(imageRepository):$(dockerTag)
+
+                        echo 'Running the new container...'
+                        docker run -d --name $(app-name) -p 80:3000 $(imageRepository):$(dockerTag)"                      
+
+                # Deploy to backend VM 2 via Jumphost
+                - task: SSH@0
+                  displayName: Deploy to backend VM 2
+                  inputs:
+                    sshEndpoint: '$(ssh-connection)'
+                    runOptions: 'inline' # Use inline option
+                    inline: |
+
+                      # Define the path to the private key on the jumphost
+                      PRIVATE_KEY_PATH="/home/moayad/key.pem"
+
+                      # Ensure the private key has correct permissions (optional but recommended)
+                      chmod 600 "$PRIVATE_KEY_PATH" || true
+
+                      # SSH to the backend VM and execute the deploy commands with conditional logic.
+                      # Use double quotes for the remote command block to handle potential variables
+                      # and multiline commands.
+                      ssh -o StrictHostKeyChecking=no -i "$PRIVATE_KEY_PATH" $(vmUsername)@$(backendVm2PrivateIP) "
+                        echo 'Stopping and removing existing container (if any)...'
+                        if docker inspect  $(app-name) >/dev/null 2>&1; then
+                          docker rm -f  $(app-name)
+                        else
+                          echo 'Container $(app-name) not found. Skipping removal.'
+                        fi
+
+                        echo 'Pulling the latest Docker image...'
+                        docker pull $(imageRepository):$(dockerTag)
+
+                        echo 'Running the new container...'
+                        docker run -d --name $(app-name) -p 80:3000 $(imageRepository):$(dockerTag)"
