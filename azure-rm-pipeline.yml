@@ -14,7 +14,7 @@ variables:
   resource_group_name: 'devops2-group5-rg'
   virtual_machine_name: 'devops2-group5-backend-vm1'
   virtual_machine_name2: 'devops2-group5-backend-vm2'
-  frontend_port: 80
+  frontend_port: 3000
   container_port: 3000
   azure_service_connection: 'project2-connection'
 
