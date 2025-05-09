@@ -1,0 +1,113 @@
+trigger:
+  - main # Or whichever branch you use for releases
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  nodeVersion: '20.x'
+  dockerRegistryServiceConnection: 'dockerhub_connection'
+  dockerhub_username: 'dmoayad'
+  imageRepository: 'authentication_app_backend'
+  tag: '$(Build.BuildId)'
+  container_name: 'authentication_app_backend'
+  resource_group_name: 'devops2-group5-rg'
+  virtual_machine_name: 'devops2-group5-backend-vm1'
+  virtual_machine_name2: 'devops2-group5-backend-vm2'
+  frontend_port: 80
+  container_port: 3000
+  azure_service_connection: 'project2-connection'
+
+stages:
+  - stage: Build
+    displayName: 'Build, Test, Analyze, and Dockerize'
+    jobs:
+      - job: Build
+        displayName: 'Build & Analyze Node App'
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '$(nodeVersion)'
+            displayName: 'Use Node.js $(nodeVersion)'
+
+          - script: |
+              npm install
+            displayName: 'Install Dependencies'
+
+          - script: |
+              npm run test
+            displayName: 'Run Tests'
+
+          - script: |
+              npm run build
+            displayName: 'Build Application'
+
+          - task: PublishTestResults@2
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'test-results/test-results.xml'
+            condition: succeededOrFailed()
+            displayName: 'Publish Test Results'
+
+          - task: Docker@2
+            displayName: 'Build Docker Image'
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: '$(dockerhub_username)/$(imageRepository)'
+              command: 'buildAndPush'
+              Dockerfile: 'Dockerfile'
+              tags: |
+                latest
+                $(tag)
+
+  - stage: Deploy
+    displayName: 'Deploy on VM1'
+    dependsOn: Build
+    jobs:
+      - job: DeployWithRunCommand
+        displayName: 'Run Docker on Backend VM1'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Deploy via Azure CLI Run-Command'
+            inputs:
+              azureSubscription: '$(azure_service_connection)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "Running deployment script on VM1..."
+                az vm run-command invoke \
+                  --resource-group $(resource_group_name) \
+                  --name $(virtual_machine_name) \
+                  --command-id RunShellScript \
+                  --scripts "docker pull $(dockerhub_username)/$(imageRepository):$(Build.BuildId) && \
+                             docker stop $(container_name) || true && docker rm $(container_name) || true && \
+                             docker run -d --name $(container_name) -p $(frontend_port):$(container_port) \
+                             $(dockerhub_username)/$(imageRepository):$(Build.BuildId)"
+
+  - stage: Deploy_2
+    displayName: 'Deploy on VM2'
+    dependsOn: Build
+    jobs:
+      - job: DeployWithRunCommand
+        displayName: 'Run Docker on Backend VM2'
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: AzureCLI@2
+            displayName: 'Deploy via Azure CLI Run-Command'
+            inputs:
+              azureSubscription: '$(azure_service_connection)'
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "Running deployment script on VM2..."
+                az vm run-command invoke \
+                  --resource-group $(resource_group_name) \
+                  --name $(virtual_machine_name2) \
+                  --command-id RunShellScript \
+                  --scripts "docker pull $(dockerhub_username)/$(imageRepository):$(Build.BuildId) && \
+                             docker stop $(container_name) || true && docker rm $(container_name) || true && \
+                             docker run -d --name $(container_name) -p $(frontend_port):$(container_port) \
+                             $(dockerhub_username)/$(imageRepository):$(Build.BuildId)"

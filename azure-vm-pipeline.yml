@@ -10,7 +10,7 @@ variables:
   vmUsername: 'moayad'
   ssh-connection: 'jumphost-vm-connection'
   jumpHostIP: '52.165.158.86'
-  backendVm1PrivateIP: '10.0.3.6'
+  backendVm1PrivateIP: '10.0.3.4'
   backendVm2PrivateIP: '10.0.3.5'
   app-name: authentication_app_backend
   sshKeySecureFile: 'key.pem' # Upload your SSH private key as a Secure File in Azure DevOps
