@@ -71,6 +71,6 @@ stages:
             kubernetesCluster: 'devops2-group5-aks'
             namespace: $(k8sNamespace)
             command: 'apply'
-            arguments: '-f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml -f k8s/backend_ingress.yml -f k8s/namespace.yml'
+            arguments: '-f k8s/namespace.yml -f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml -f k8s/backend_ingress.yml'
 
 
