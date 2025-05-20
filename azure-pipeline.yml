@@ -1,0 +1,76 @@
+trigger:
+  branches:
+    include:
+      - test-branch
+
+variables:
+  dockerRegistryServiceConnection: 'dockerhub_connection'
+  imageRepository: 'dmoayad/authentication_app_backend'
+  dockerfilePath: 'Dockerfile'
+  tag: '$(Build.BuildId)'
+  containerRegistry: 'dmoayad/authentication_app_backend'
+  kubernetesServiceConnection: 'azurerm-connection'
+  k8sNamespace: 'auth-app'
+
+stages:
+
+# -------------------------------------
+# Stage 1: CI - Build, Test, Dockerize, Scan
+# -------------------------------------
+- stage: CI
+  displayName: 'Build, Test, Dockerize, Scan'
+  jobs:
+    - job: BuildAndPush
+      displayName: 'Build and Push Docker Image'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+
+        # Docker Build
+        - task: Docker@2
+          displayName: 'Build Docker Image'
+          inputs:
+            command: build
+            containerRegistry: $(dockerRegistryServiceConnection)
+            repository: $(imageRepository)
+            dockerfile: $(dockerfilePath)
+            tags: |
+              $(tag)
+
+        # Docker Push
+        - task: Docker@2
+          displayName: 'Push Docker Image'
+          inputs:
+            command: push
+            containerRegistry: $(dockerRegistryServiceConnection)
+            repository: $(imageRepository)
+            tags: |
+              $(tag)
+
+# -------------------------------------
+# Stage 2: CD - Deploy to Kubernetes
+# -------------------------------------
+- stage: CD
+  displayName: 'Deploy to AKS'
+  dependsOn: CI
+  jobs:
+    - job: DeployToAKS
+      displayName: 'Apply Kubernetes YAMLs'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+
+        - task: Kubernetes@1
+          displayName: 'Deploy to AKS'
+          inputs:
+            connectionType: 'Azure Resource Manager'
+            azureSubscriptionEndpoint: $(kubernetesServiceConnection)
+            azureResourceGroup: 'devops2-group5-rg'
+            kubernetesCluster: 'devops2-group5-aks'
+            namespace: $(k8sNamespace)
+            command: 'apply'
+            arguments: '-f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml -f k8s/backend_ingress.yml -f k8s/namespace.yml'
+
+
