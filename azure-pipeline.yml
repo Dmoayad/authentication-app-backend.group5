@@ -37,6 +37,7 @@ stages:
             dockerfile: $(dockerfilePath)
             tags: |
               $(tag)
+              latest
 
         # Docker Push
         - task: Docker@2
@@ -47,6 +48,7 @@ stages:
             repository: $(imageRepository)
             tags: |
               $(tag)
+              latest
 
 # -------------------------------------
 # Stage 2: CD - Deploy to Kubernetes
@@ -71,6 +73,6 @@ stages:
             kubernetesCluster: 'devops2-group5-aks'
             namespace: $(k8sNamespace)
             command: 'apply'
-            arguments: '-f k8s/namespace.yml -f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml -f k8s/backend_ingress.yml'
+            arguments: '-f k8s/namespace.yml -f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml'
 
 
