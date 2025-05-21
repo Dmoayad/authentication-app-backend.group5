@@ -32,11 +32,10 @@ spec:
             limits:
               memory: "2Gi"
               cpu: "500m"
-
-      #     volumeMounts:
-      #       - name: sonarqube-data
-      #         mountPath: /opt/sonarqube/data
-      # volumes:
-      #   - name: sonarqube-data
-      #     persistentVolumeClaim:
-      #       claimName: sonarqube-pvcc
+          volumeMounts:
+            - name: sonarqube-persistent-storage # Name matching the volume
+              mountPath: /opt/sonarqube/data # The path inside the SonarQube container where data is stored
+      volumes:
+        - name: sonarqube-persistent-storage # Name referenced in volumeMounts
+          persistentVolumeClaim:
+            claimName: sonarqube-data-pvc # The name of the PVC you created
