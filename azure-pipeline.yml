@@ -34,6 +34,8 @@ stages:
             configMode: 'manual'
             cliProjectKey: '$(sonarProjectKey)'
             cliSources: '.'
+            extraProperties: |
+              sonar.host.url=http://128.203.85.110:9000
 
         # Step 2: Docker Build
         - task: Docker@2
@@ -49,6 +51,10 @@ stages:
 
         # Step 3: Run SonarQube Analysis
         - task: SonarQubeAnalyze@5
+
+        # Step 3.5: Wait before publishing
+        - script: sleep 30
+          displayName: 'Wait for SonarQube to process results'
 
         # Step 4: Publish SonarQube Results
         - task: SonarQubePublish@5
