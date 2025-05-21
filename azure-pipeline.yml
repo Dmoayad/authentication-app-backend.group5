@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-      - test-branch
+      - main
 
 variables:
   dockerRegistryServiceConnection: 'dockerhub_connection'
