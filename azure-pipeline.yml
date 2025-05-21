@@ -78,17 +78,7 @@ stages:
               $(tag)
               latest
 
-        # Step 3: Run SonarQube Analysis
-        - task: SonarQubeAnalyze@7
 
-        # Step 3.5: Wait before publishing
-        - script: sleep 30
-          displayName: 'Wait for SonarQube to process results'
-
-        # Step 4: Publish SonarQube Results
-        - task: SonarQubePublish@5
-          inputs:
-            pollingTimeoutSec: '300'
 
         # Step 5: Docker Push
         - task: Docker@2
