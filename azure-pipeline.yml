@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-      - main
+      - test-branch
 
 variables:
   dockerRegistryServiceConnection: 'dockerhub_connection'
@@ -11,23 +11,37 @@ variables:
   containerRegistry: 'dmoayad/authentication_app_backend'
   kubernetesServiceConnection: 'azurerm-connection'
   k8sNamespace: 'auth-app'
+  sonarQubeServiceConnection: 'SonarQube-Service'  
+  sonarProjectKey: 'project3-group5'
 
 stages:
 
-# -------------------------------------
-# Stage 1: CI - Build, Test, Dockerize, Scan
-# -------------------------------------
+# ------------------ CI Stage ------------------
 - stage: CI
-  displayName: 'Build, Test, Dockerize, Scan'
+  displayName: 'Build, Scan, Push Docker Image'
   jobs:
-    - job: BuildAndPush
-      displayName: 'Build and Push Docker Image'
+    - job: BuildAndScan
       pool:
         vmImage: 'ubuntu-latest'
       steps:
         - checkout: self
 
-        # Docker Build
+        # Step 1: Install sonar-scanner
+        - script: |
+            sudo apt-get update
+            sudo apt-get install -y unzip
+            wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+            unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+            mv sonar-scanner-5.0.1.3006-linux sonar-scanner
+            export PATH=$PATH:$(pwd)/sonar-scanner/bin
+            sonar-scanner \
+              -Dsonar.projectKey=project3-group5 \
+              -Dsonar.sources=. \
+              -Dsonar.host.url=http://128.203.85.110:9000 \
+              -Dsonar.token=sqp_2edd489d7fa9c05aba50aa8b45b8d353d6824407
+          displayName: 'Run SonarQube Scanner'
+
+        # Step 2: Docker Build
         - task: Docker@2
           displayName: 'Build Docker Image'
           inputs:
@@ -39,7 +53,7 @@ stages:
               $(tag)
               latest
 
-        # Docker Push
+        # Step 3: Docker Push
         - task: Docker@2
           displayName: 'Push Docker Image'
           inputs:
@@ -50,15 +64,12 @@ stages:
               $(tag)
               latest
 
-# -------------------------------------
-# Stage 2: CD - Deploy to Kubernetes
-# -------------------------------------
+# ------------------ CD Stage ------------------
 - stage: CD
   displayName: 'Deploy to AKS'
   dependsOn: CI
   jobs:
     - job: DeployToAKS
-      displayName: 'Apply Kubernetes YAMLs'
       pool:
         vmImage: 'ubuntu-latest'
       steps:
@@ -73,6 +84,6 @@ stages:
             kubernetesCluster: 'devops2-group5-aks'
             namespace: $(k8sNamespace)
             command: 'apply'
-            arguments: '-f k8s/namespace.yml -f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml'
+            arguments: '-f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml -f k8s/backend_ingress.yml -f k8s/namespace.yml'
 
 
