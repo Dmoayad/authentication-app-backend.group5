@@ -11,7 +11,7 @@ variables:
   containerRegistry: 'dmoayad/authentication_app_backend'
   kubernetesServiceConnection: 'azurerm-connection'
   k8sNamespace: 'auth-app'
-  sonarQubeServiceConnection: 'SonarQube-Service'  
+  sonarQubeServiceConnection: 'SonarQube-Service'
   sonarProjectKey: 'project3-group5'
 
 stages:
@@ -26,20 +26,14 @@ stages:
       steps:
         - checkout: self
 
-        # Step 1: Install sonar-scanner
-        - script: |
-            sudo apt-get update
-            sudo apt-get install -y unzip
-            wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-            unzip sonar-scanner-cli-5.0.1.3006-linux.zip
-            mv sonar-scanner-5.0.1.3006-linux sonar-scanner
-            export PATH=$PATH:$(pwd)/sonar-scanner/bin
-            sonar-scanner \
-              -Dsonar.projectKey=project3-group5 \
-              -Dsonar.sources=. \
-              -Dsonar.host.url=http://128.203.85.110:9000 \
-              -Dsonar.token=squ_5a18dad1ccff9050afeeef43b7ab99900eae7cdb
-          displayName: 'Run SonarQube Scanner'
+        # Step 1: Prepare SonarQube Analysis
+        - task: SonarQubePrepare@5
+          inputs:
+            SonarQube: '$(sonarQubeServiceConnection)'
+            scannerMode: 'CLI'
+            configMode: 'manual'
+            cliProjectKey: '$(sonarProjectKey)'
+            cliSources: '.'
 
         # Step 2: Docker Build
         - task: Docker@2
@@ -53,7 +47,15 @@ stages:
               $(tag)
               latest
 
-        # Step 3: Docker Push
+        # Step 3: Run SonarQube Analysis
+        - task: SonarQubeAnalyze@5
+
+        # Step 4: Publish SonarQube Results
+        - task: SonarQubePublish@5
+          inputs:
+            pollingTimeoutSec: '300'
+
+        # Step 5: Docker Push
         - task: Docker@2
           displayName: 'Push Docker Image'
           inputs:
@@ -85,5 +87,3 @@ stages:
             namespace: $(k8sNamespace)
             command: 'apply'
             arguments: '-f k8s/backend_clusterip.yml -f k8s/backend_deploy.yml -f k8s/backend_ingress.yml -f k8s/namespace.yml'
-
-
