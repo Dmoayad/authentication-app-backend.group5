@@ -79,7 +79,7 @@ stages:
               latest
 
         # Step 3: Run SonarQube Analysis
-        - task: SonarQubeAnalyze@5
+        - task: SonarQubeAnalyze@7
 
         # Step 3.5: Wait before publishing
         - script: sleep 30
