@@ -38,7 +38,7 @@ stages:
               -Dsonar.projectKey=project3-group5 \
               -Dsonar.sources=. \
               -Dsonar.host.url=http://128.203.85.110:9000 \
-              -Dsonar.token=sqp_2edd489d7fa9c05aba50aa8b45b8d353d6824407
+              -Dsonar.token=squ_5a18dad1ccff9050afeeef43b7ab99900eae7cdb
           displayName: 'Run SonarQube Scanner'
 
         # Step 2: Docker Build
