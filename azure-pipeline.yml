@@ -26,16 +26,43 @@ stages:
       steps:
         - checkout: self
 
-        # Step 1: Prepare SonarQube Analysis
-        - task: SonarQubePrepare@5
+        - task: NodeTool@0
           inputs:
-            SonarQube: '$(sonarQubeServiceConnection)'
-            scannerMode: 'CLI'
-            configMode: 'manual'
-            cliProjectKey: '$(sonarProjectKey)'
-            cliSources: '.'
-            extraProperties: |
-              sonar.host.url=http://128.203.85.110:9000
+            versionSpec: "$(nodeVersion)"
+          displayName: "Use Node.js $(nodeVersion)"
+
+        - task: SonarQubePrepare@7
+          inputs:
+            SonarQube: "$(sonarqube_service_connection)"
+            scannerMode: "CLI"
+            configMode: "manual"
+            cliProjectKey: "$(appName)"
+            cliProjectName: "Backend Node App"
+            cliSources: "."
+          displayName: "Prepare SonarQube Analysis"
+
+        - script: |
+            npm install
+          displayName: "Install Dependencies"
+
+        - task: SonarQubeAnalyze@7
+          displayName: "Run SonarQube Analysis"
+
+        - script: |
+            npm test
+          displayName: "Run Tests"
+
+        - task: PublishTestResults@2
+          inputs:
+            testResultsFormat: "JUnit"
+            testResultsFiles: "test-results/test-results.xml"
+          condition: succeededOrFailed()
+          displayName: "Publish Test Results"
+
+        - task: SonarQubePublish@7
+          inputs:
+            pollingTimeoutSec: "300"
+          displayName: "Publish SonarQube Results"
 
         # Step 2: Docker Build
         - task: Docker@2
