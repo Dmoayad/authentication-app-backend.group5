@@ -38,8 +38,8 @@ stages:
             SonarQube: "$(sonarQubeServiceConnection)"
             scannerMode: "CLI"
             configMode: "manual"
-            cliProjectKey: "$(appName)"
-            cliProjectName: "Backend Node App"
+            cliProjectKey: "$(sonarProjectKey)"
+            cliProjectName: "Backend Authentication App"
             cliSources: "."
           displayName: "Prepare SonarQube Analysis"
 
@@ -77,8 +77,6 @@ stages:
             tags: |
               $(tag)
               latest
-
-
 
         # Step 5: Docker Push
         - task: Docker@2
