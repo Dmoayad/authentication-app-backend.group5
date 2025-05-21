@@ -12,7 +12,7 @@ variables:
   kubernetesServiceConnection: 'azurerm-connection'
   k8sNamespace: 'auth-app'
   sonarQubeServiceConnection: 'SonarQube-Service'
-  sonarProjectKey: 'project3-group5'
+  sonarProjectKey: 'project3-group5-backend'
   nodeVersion: "20.x"
   appName: 'project3-group5' 
 
