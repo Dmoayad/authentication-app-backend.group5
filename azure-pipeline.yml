@@ -33,7 +33,7 @@ stages:
 
         - task: SonarQubePrepare@7
           inputs:
-            SonarQube: "$(sonarqube_service_connection)"
+            SonarQube: "$(sonarQubeServiceConnection)"
             scannerMode: "CLI"
             configMode: "manual"
             cliProjectKey: "$(appName)"
