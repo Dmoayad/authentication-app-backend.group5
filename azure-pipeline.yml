@@ -13,6 +13,7 @@ variables:
   k8sNamespace: 'auth-app'
   sonarQubeServiceConnection: 'SonarQube-Service'
   sonarProjectKey: 'project3-group5'
+  nodeVersion: "20.x"
 
 stages:
 
